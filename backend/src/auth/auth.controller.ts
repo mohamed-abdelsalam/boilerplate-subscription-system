@@ -13,7 +13,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('sign-in')
-  public signIn(@Body() signInDto: SignInDto) : Promise<SignInResponseDto> {
+  public signIn(@Body() signInDto: SignInDto): Promise<SignInResponseDto> {
     return this.authService.signIn(signInDto);
   }
 

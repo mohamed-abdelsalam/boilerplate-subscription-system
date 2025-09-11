@@ -1,9 +1,12 @@
+import bcrypt from 'bcrypt';
+
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
 import { UsersService } from '../users/users.service';
 import { SignInDto } from './dto/sign-in-dto';
 import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
 import { SignUpDto } from './dto/sign-up-dto';
-import { JwtService } from '@nestjs/jwt';
 import { SignInResponseDto } from './dto/sign-in-response-dto';
 import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { SignUpResponseDto } from './dto/sign-up-response-dto';
@@ -20,7 +23,11 @@ export class AuthService {
     if (user === undefined) {
       throw new EmailNotFoundException();
     }
-    if (user.password !== signInDto.password) {
+    const isPasswordCorrect: boolean = await this.comparePassword(
+      signInDto.password,
+      user.password,
+    );
+    if (!isPasswordCorrect) {
       throw new UnauthorizedException();
     }
 
@@ -41,7 +48,7 @@ export class AuthService {
       email: signUpDto.email,
       firstName: signUpDto.firstName,
       lastName: signUpDto.lastName,
-      password: signUpDto.password,
+      password: await this.hashPassword(signUpDto.password),
     });
     const payload = { sub: user.id, username: user.email };
     const accessToken = await this.jwtService.signAsync(payload);
@@ -49,5 +56,16 @@ export class AuthService {
     return {
       access_token: accessToken,
     };
+  }
+
+  private async hashPassword(plainTextPassword: string): Promise<string> {
+    return bcrypt.hash(plainTextPassword, 10);
+  }
+
+  private async comparePassword(
+    plainTextPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(plainTextPassword, hashedPassword);
   }
 }

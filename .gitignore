@@ -33,3 +33,7 @@ backend/.vscode/*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Next
+frontend/.next
+frontend/node_modules
