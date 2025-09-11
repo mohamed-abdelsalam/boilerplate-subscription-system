@@ -37,3 +37,6 @@ backend/.vscode/*
 # Next
 frontend/.next
 frontend/node_modules
+
+# Local
+backend/.env

@@ -1,15 +1,16 @@
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { UsersService } from '../users/users.service';
 import { SignInDto } from './dto/sign-in-dto';
-import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
 import { SignUpDto } from './dto/sign-up-dto';
 import { SignInResponseDto } from './dto/sign-in-response-dto';
+import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
 import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { SignUpResponseDto } from './dto/sign-up-response-dto';
+import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +20,7 @@ export class AuthService {
   ) {}
 
   public async signIn(signInDto: SignInDto): Promise<SignInResponseDto> {
-    const user = await this.usersService.findByEmail(signInDto.email);
+    const user: User = await this.usersService.findByEmail(signInDto.email);
     if (user === undefined) {
       throw new EmailNotFoundException();
     }
@@ -31,8 +32,7 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const payload = { sub: user.id, username: user.email };
-    const accessToken = await this.jwtService.signAsync(payload);
+    const accessToken = await this.generateAccessToken(user);
 
     return {
       access_token: accessToken,
@@ -40,7 +40,7 @@ export class AuthService {
   }
 
   public async signUp(signUpDto: SignUpDto): Promise<SignUpResponseDto> {
-    let user = await this.usersService.findByEmail(signUpDto.email);
+    let user: User = await this.usersService.findByEmail(signUpDto.email);
     if (user) {
       throw new DuplicateEmailException();
     }
@@ -50,8 +50,8 @@ export class AuthService {
       lastName: signUpDto.lastName,
       password: await this.hashPassword(signUpDto.password),
     });
-    const payload = { sub: user.id, username: user.email };
-    const accessToken = await this.jwtService.signAsync(payload);
+
+    const accessToken = await this.generateAccessToken(user);
 
     return {
       access_token: accessToken,
@@ -67,5 +67,10 @@ export class AuthService {
     hashedPassword: string,
   ): Promise<boolean> {
     return bcrypt.compare(plainTextPassword, hashedPassword);
+  }
+
+  private async generateAccessToken(user: User): Promise<string> {
+    const payload = { sub: user.id, email: user.email };
+    return this.jwtService.signAsync(payload);
   }
 }

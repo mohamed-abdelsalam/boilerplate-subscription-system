@@ -18,6 +18,7 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('sign-up')
   public signUp(@Body() signUpDto: SignUpDto): Promise<SignUpResponseDto> {
     return this.authService.signUp(signUpDto);

@@ -28,6 +28,8 @@ describe('UsersService', () => {
 
       const newUser = service.createUser(createUserDto);
 
+      expect(newUser.id).toBeDefined();
+      console.log(newUser.id);
       expect(newUser.email).toEqual(createUserDto.email);
       expect(newUser.firstName).toEqual(createUserDto.firstName);
       expect(newUser.lastName).toEqual(createUserDto.lastName);
@@ -49,8 +51,5 @@ describe('UsersService', () => {
       expect(newUser.lastName).toEqual(createUserDto.lastName);
       expect(newUser.password).toEqual(createUserDto.password);
     });
-
   });
-
-  
 });
