@@ -24,4 +24,15 @@ export class UsersService {
       return i.email === email;
     })[0];
   }
+
+  public findById(id: string): User {
+    return userList.filter((i) => {
+      return i.id === id;
+    })[0];
+  }
+
+  public async getUserName(id: string): Promise<string> {
+    const user: User = this.findById(id);
+    return `${user.firstName} ${user.lastName}`;
+  }
 }

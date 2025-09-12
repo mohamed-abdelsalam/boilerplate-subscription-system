@@ -1,13 +1,20 @@
+import { Job, Queue } from 'bullmq';
+
 import { Controller, Get, Post, Req } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { SubscriptionsService } from './subscriptions.service';
+import { Subscription } from './entities/subscription';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
-  constructor(private subscriptionsService: SubscriptionsService) {}
+  constructor(
+    @InjectQueue('subscription_q') private subscriptionQueue: Queue,
+    private subscriptionsService: SubscriptionsService,
+  ) {}
 
   @Post('/')
-  public async createSubscription(@Req() request: Request) {
+  public async createSubscription(@Req() request: Request): Promise<Job> {
     const email: string = request['user']['email'];
     const userId: string = request['user']['sub'];
     const createSubscriptionDto: CreateSubscriptionDto = {
@@ -16,16 +23,15 @@ export class SubscriptionsController {
       subscriptionType: 'Basic',
     };
 
-    this.subscriptionsService.createSubscription(createSubscriptionDto);
+    const job: Job = await this.subscriptionQueue.add(
+      'task',
+      createSubscriptionDto,
+    );
+    return job;
   }
 
   @Get('/')
-  public async getAllSubscriptions(@Req() request: Request): Promise<any> {
-    const user: any = request['user'];
-
-    return {
-      user,
-      subscriptionList: await this.subscriptionsService.getAllSubscriptions(),
-    };
+  public async getAllSubscriptions(): Promise<Subscription[]> {
+    return this.subscriptionsService.getAllSubscriptions();
   }
 }

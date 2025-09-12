@@ -1,13 +1,16 @@
+import * as bcrypt from 'bcrypt';
+
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
 import { SignInDto } from './dto/sign-in-dto';
-import { UnauthorizedException } from '@nestjs/common';
-import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { SignUpDto } from './dto/sign-up-dto';
+import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
+import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -16,13 +19,15 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [JwtModule.register({
-        global: true,
-        secret: 'secret',
-        signOptions: {
-          expiresIn: '60m',
-        }
-      })],
+      imports: [
+        JwtModule.register({
+          global: true,
+          secret: 'secret',
+          signOptions: {
+            expiresIn: '60m',
+          },
+        }),
+      ],
       providers: [AuthService, UsersService],
     }).compile();
 
@@ -39,17 +44,19 @@ describe('AuthService', () => {
     it('happy path', async () => {
       const mockedUser = {
         email: 'test@email.com',
-        password: 'password',
+        password: await bcrypt.hash('password', 10),
         firstName: 'Test',
         lastName: 'User',
-        id: 1,
+        id: '1',
       };
-      const usersServiceFindByEmailSpy = jest.spyOn(usersService, 'findByEmail').mockReturnValue(mockedUser);
+      const usersServiceFindByEmailSpy = jest
+        .spyOn(usersService, 'findByEmail')
+        .mockReturnValue(mockedUser);
       const jwtSpy = jest.spyOn(jwtService, 'signAsync');
 
       const signInDto: SignInDto = {
         email: mockedUser.email,
-        password: mockedUser.password,
+        password: 'password',
       };
 
       const response = await authService.signIn(signInDto);
@@ -67,38 +74,45 @@ describe('AuthService', () => {
         password: 'wrong_password',
         firstName: 'Test',
         lastName: 'User',
-        id: 1,
+        id: '1',
       };
-      const usersServiceFindByEmailSpy = jest.spyOn(usersService, 'findByEmail').mockReturnValue(mockedUser);
+      const usersServiceFindByEmailSpy = jest
+        .spyOn(usersService, 'findByEmail')
+        .mockReturnValue(mockedUser);
 
       const signInDto: SignInDto = {
         email: mockedUser.email,
         password: 'password',
       };
 
-      authService.signIn(signInDto)
-      .then(() => {
-        fail('should throw exception');
-      })
-      .catch((exception) => {
-        expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
-        expect(exception).toBeInstanceOf(UnauthorizedException);
-      });
+      authService
+        .signIn(signInDto)
+        .then(() => {
+          fail('should throw exception');
+        })
+        .catch((exception) => {
+          expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
+          expect(exception).toBeInstanceOf(UnauthorizedException);
+        });
     });
     it('should fail when there is no account with given email', async () => {
       const signInDto: SignInDto = {
         email: 'not_found@email.com',
         password: 'password',
       };
-      const usersServiceFindByEmailSpy = jest.spyOn(usersService, 'findByEmail');
-      authService.signIn(signInDto)
-      .then(() => {
-        fail('should throw exception')
-      })
-      .catch((exception) => {
-        expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
-        expect(exception).toBeInstanceOf(EmailNotFoundException)
-      });
+      const usersServiceFindByEmailSpy = jest.spyOn(
+        usersService,
+        'findByEmail',
+      );
+      authService
+        .signIn(signInDto)
+        .then(() => {
+          fail('should throw exception');
+        })
+        .catch((exception) => {
+          expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
+          expect(exception).toBeInstanceOf(EmailNotFoundException);
+        });
     });
   });
 
@@ -110,7 +124,10 @@ describe('AuthService', () => {
         firstName: 'Test',
         lastName: 'User',
       };
-      const usersServiceFindByEmailSpy = jest.spyOn(usersService, 'findByEmail');
+      const usersServiceFindByEmailSpy = jest.spyOn(
+        usersService,
+        'findByEmail',
+      );
       const usersServiceCreateUserSpy = jest.spyOn(usersService, 'createUser');
 
       const signUpResponse = await authService.signUp(signUpDto);
@@ -120,6 +137,13 @@ describe('AuthService', () => {
 
       expect(signUpResponse).toBeDefined();
       expect(signUpResponse['access_token']).toBeDefined();
+      const user: User = usersService.findByEmail(signUpDto.email);
+      expect(user).toBeDefined();
+      const passwordWasHashed: boolean = await bcrypt.compare(
+        signUpDto.password,
+        user.password,
+      );
+      expect(passwordWasHashed).toEqual(true);
     });
 
     it('should throw exception when sign up with existing email', async () => {
@@ -130,14 +154,18 @@ describe('AuthService', () => {
         lastName: 'User',
       };
 
-      const usersServiceFindByEmailSpy = jest.spyOn(usersService, 'findByEmail').mockReturnValue({
-        email: 'test@email.com',
-        password: 'password',
-        firstName: 'Test',
-        lastName: 'User',
-      });
+      const usersServiceFindByEmailSpy = jest
+        .spyOn(usersService, 'findByEmail')
+        .mockReturnValue({
+          email: 'test@email.com',
+          password: 'password',
+          firstName: 'Test',
+          lastName: 'User',
+          id: '1',
+        });
       const usersServiceCreateUserSpy = jest.spyOn(usersService, 'createUser');
-      authService.signUp(signUpDto)
+      authService
+        .signUp(signUpDto)
         .then(() => {
           fail('should throw exception');
         })

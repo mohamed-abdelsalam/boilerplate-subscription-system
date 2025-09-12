@@ -3,7 +3,7 @@ export class CreateStripeSubscripttionDto {
   currency: string;
   items: SubscriptionItem[];
   payment_behavior: PaymentBehavior;
-  readonly expand: string[] = ['latest_invoice.payment_intent'];
+  // readonly expand: string[] = ['latest_invoice.payment_intent'];
 }
 
 class SubscriptionItem {
