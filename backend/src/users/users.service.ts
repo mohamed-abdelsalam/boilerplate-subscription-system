@@ -1,38 +1,34 @@
-import { v4 as uuidv4 } from 'uuid';
+import { Repository } from 'typeorm';
 
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user';
 
-const userList: User[] = [];
-
 @Injectable()
 export class UsersService {
-  public createUser(createUserDto: CreateUserDto): any {
-    userList.push({
-      email: createUserDto.email,
-      password: createUserDto.password,
-      firstName: createUserDto.firstName,
-      lastName: createUserDto.lastName,
-      id: uuidv4(),
-    });
-    return userList[userList.length - 1];
+  constructor(
+    @InjectRepository(User) private usersRepository: Repository<User>,
+  ) {}
+  public createUser(createUserDto: CreateUserDto): Promise<User> {
+    const user: User = this.usersRepository.create(createUserDto);
+    return this.usersRepository.save(user);
   }
 
-  public findByEmail(email: string): User {
-    return userList.filter((i) => {
-      return i.email === email;
-    })[0];
+  public async findByEmail(email: string): Promise<User> {
+    return this.usersRepository.findOneBy({ email });
   }
 
-  public findById(id: string): User {
-    return userList.filter((i) => {
-      return i.id === id;
-    })[0];
+  public async findById(id: string): Promise<User> {
+    return this.usersRepository.findOneBy({ id });
   }
 
-  public async getUserName(id: string): Promise<string> {
-    const user: User = this.findById(id);
-    return `${user.firstName} ${user.lastName}`;
+  public async getUserFullName(id: string): Promise<string> {
+    const user: User = await this.findById(id);
+    if (user) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    return null;
   }
 }

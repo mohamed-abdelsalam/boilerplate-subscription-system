@@ -44,7 +44,7 @@ export class AuthService {
     if (user) {
       throw new DuplicateEmailException();
     }
-    user = this.usersService.createUser({
+    user = await this.usersService.createUser({
       email: signUpDto.email,
       firstName: signUpDto.firstName,
       lastName: signUpDto.lastName,

@@ -1,20 +1,23 @@
 import { Job } from 'bullmq';
 
-import { Processor } from '@nestjs/bullmq';
-import { StripeService } from '../stripe/stripe.service';
-import { UsersService } from '../users/users.service';
-import { Plan } from '../plans/entities/plan';
-import { PlansService } from '../plans/plans.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+
+import { StripeService } from '@stripe/stripe.service';
+import { UsersService } from '@users/users.service';
+import { Plan } from '@plans/entities/plan';
+import { PlansService } from '@plans/plans.service';
 
 @Processor('subscription_q')
-export class SubscriptionProcessor {
+export class SubscriptionProcessor extends WorkerHost {
   constructor(
     private stripeService: StripeService,
     private usersService: UsersService,
     private plansService: PlansService,
-  ) {}
+  ) {
+    super();
+  }
 
-  public async handleSubscriptionCreation(job: Job) {
+  public async process(job: Job): Promise<any> {
     const userId: string = job.data['userId'];
     const email: string = job.data['email'];
     const subscriptionType: string = job.data['subscriptionType'];
@@ -24,7 +27,7 @@ export class SubscriptionProcessor {
       metadata: {
         userId: userId,
       },
-      name: await this.usersService.getUserName(userId),
+      name: await this.usersService.getUserFullName(userId),
     });
 
     const selectedPlan: Plan =

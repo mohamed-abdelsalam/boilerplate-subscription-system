@@ -1,8 +1,9 @@
 import { Job, Queue } from 'bullmq';
 
 import { Controller, Get, Post, Req } from '@nestjs/common';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { InjectQueue } from '@nestjs/bullmq';
+
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { SubscriptionsService } from './subscriptions.service';
 import { Subscription } from './entities/subscription';
 
@@ -31,7 +32,10 @@ export class SubscriptionsController {
   }
 
   @Get('/')
-  public async getAllSubscriptions(): Promise<Subscription[]> {
-    return this.subscriptionsService.getAllSubscriptions();
+  public async getAllSubscriptionsByUser(
+    @Req() request: Request,
+  ): Promise<Subscription[]> {
+    const userId: string = request['user']['sub'];
+    return this.subscriptionsService.getAllSubscriptionsByUserId(userId);
   }
 }

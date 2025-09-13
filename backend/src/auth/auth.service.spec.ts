@@ -3,14 +3,16 @@ import * as bcrypt from 'bcrypt';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+
+import { UsersService } from '@users/users.service';
+import { User } from '@users/entities/user';
 
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in-dto';
 import { SignUpDto } from './dto/sign-up-dto';
 import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/entities/user';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -28,7 +30,18 @@ describe('AuthService', () => {
           },
         }),
       ],
-      providers: [AuthService, UsersService],
+      providers: [
+        AuthService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            create: jest.fn(),
+            findOneBy: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        UsersService,
+      ],
     }).compile();
 
     authService = module.get<AuthService>(AuthService);
@@ -51,7 +64,7 @@ describe('AuthService', () => {
       };
       const usersServiceFindByEmailSpy = jest
         .spyOn(usersService, 'findByEmail')
-        .mockReturnValue(mockedUser);
+        .mockImplementation(async () => mockedUser);
       const jwtSpy = jest.spyOn(jwtService, 'signAsync');
 
       const signInDto: SignInDto = {
@@ -78,7 +91,7 @@ describe('AuthService', () => {
       };
       const usersServiceFindByEmailSpy = jest
         .spyOn(usersService, 'findByEmail')
-        .mockReturnValue(mockedUser);
+        .mockImplementation(async () => mockedUser);
 
       const signInDto: SignInDto = {
         email: mockedUser.email,
@@ -124,12 +137,20 @@ describe('AuthService', () => {
         firstName: 'Test',
         lastName: 'User',
       };
-      const usersServiceFindByEmailSpy = jest.spyOn(
-        usersService,
-        'findByEmail',
-      );
-      const usersServiceCreateUserSpy = jest.spyOn(usersService, 'createUser');
-
+      const usersServiceFindByEmailSpy = jest
+        .spyOn(usersService, 'findByEmail')
+        .mockImplementationOnce(async () => undefined)
+        .mockImplementationOnce(async () => ({
+          ...signUpDto,
+          password: await bcrypt.hash('password', 10),
+          id: '123',
+        }));
+      const usersServiceCreateUserSpy = jest
+        .spyOn(usersService, 'createUser')
+        .mockImplementation(async () => ({
+          ...signUpDto,
+          id: '123',
+        }));
       const signUpResponse = await authService.signUp(signUpDto);
 
       expect(usersServiceCreateUserSpy).toHaveBeenCalledTimes(1);
@@ -137,7 +158,7 @@ describe('AuthService', () => {
 
       expect(signUpResponse).toBeDefined();
       expect(signUpResponse['access_token']).toBeDefined();
-      const user: User = usersService.findByEmail(signUpDto.email);
+      const user: User = await usersService.findByEmail(signUpDto.email);
       expect(user).toBeDefined();
       const passwordWasHashed: boolean = await bcrypt.compare(
         signUpDto.password,
@@ -156,13 +177,13 @@ describe('AuthService', () => {
 
       const usersServiceFindByEmailSpy = jest
         .spyOn(usersService, 'findByEmail')
-        .mockReturnValue({
+        .mockImplementation(async () => ({
           email: 'test@email.com',
           password: 'password',
           firstName: 'Test',
           lastName: 'User',
           id: '1',
-        });
+        }));
       const usersServiceCreateUserSpy = jest.spyOn(usersService, 'createUser');
       authService
         .signUp(signUpDto)

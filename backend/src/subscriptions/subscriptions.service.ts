@@ -1,13 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { Subscription } from './entities/subscription';
+import { Repository } from 'typeorm';
 
-const subscriptions: Subscription[] = [];
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
+import { Subscription } from './entities/subscription';
 
 @Injectable()
 export class SubscriptionsService {
-  constructor() {}
+  constructor(
+    @InjectRepository(Subscription)
+    private subscriptionsRepository: Repository<Subscription>,
+  ) {}
 
-  public async getAllSubscriptions(): Promise<Subscription[]> {
-    return subscriptions;
+  public async getAllSubscriptionsByUserId(
+    userId: string,
+  ): Promise<Subscription[]> {
+    return await this.subscriptionsRepository.findBy({ userId });
   }
 }

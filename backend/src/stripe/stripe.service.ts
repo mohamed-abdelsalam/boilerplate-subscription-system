@@ -2,9 +2,9 @@ import Stripe from 'stripe';
 
 import { Injectable } from '@nestjs/common';
 
+import { CreateStripeCustomerDto } from './dto/create-stripe-customer.dto';
 import { CreateStripePriceDto } from './dto/create-stripe-price.dto';
 import { CreateStripeSubscripttionDto } from './dto/create-stripe-subscription.dto';
-import { CreateStripeCustomerDto } from './dto/create-stripe-customer.dto';
 
 @Injectable()
 export class StripeService {
