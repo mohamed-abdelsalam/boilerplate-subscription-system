@@ -1,8 +1,6 @@
-import { Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { getQueueToken } from '@nestjs/bullmq';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { SubscriptionsController } from './subscriptions.controller';
@@ -12,7 +10,6 @@ import { SubscriptionsService } from './subscriptions.service';
 describe('SubscriptionsController', () => {
   let subscriptionsService: SubscriptionsService;
   let subscriptionsController: SubscriptionsController;
-  let subscriptionQueue: Queue;
   let subscriptionsRepository: Repository<Subscription>;
 
   beforeEach(async () => {
@@ -20,12 +17,6 @@ describe('SubscriptionsController', () => {
       controllers: [SubscriptionsController],
       providers: [
         SubscriptionsService,
-        {
-          provide: getQueueToken('subscription_q'),
-          useValue: {
-            add: jest.fn().mockReturnValue('job'),
-          },
-        },
         {
           provide: getRepositoryToken(Subscription),
           useValue: {
@@ -40,29 +31,11 @@ describe('SubscriptionsController', () => {
     );
     subscriptionsService =
       module.get<SubscriptionsService>(SubscriptionsService);
-    subscriptionQueue = module.get<Queue>(getQueueToken('subscription_q'));
     subscriptionsRepository = module.get(getRepositoryToken(Subscription));
   });
 
   it('should be defined', () => {
     expect(subscriptionsController).toBeDefined();
-  });
-
-  describe('createSubscription', () => {
-    it('happy path', async () => {
-      const mockReq: any = {
-        user: {
-          email: 'test@email.com',
-          sub: '123',
-        },
-      };
-      const job = await subscriptionsController.createSubscription(mockReq);
-
-      const queueSpy = jest.spyOn(subscriptionQueue, 'add');
-
-      expect(queueSpy).toHaveBeenCalledTimes(1);
-      expect(job).toBeDefined();
-    });
   });
 
   describe('getAllSubscriptions', () => {

@@ -9,7 +9,7 @@ export class Subscription {
   userId: string;
 
   @Column()
-  stripeSubscriptionId: string;
+  providerSubscriptionId: string;
 
   @Column()
   subscriptionType: string;

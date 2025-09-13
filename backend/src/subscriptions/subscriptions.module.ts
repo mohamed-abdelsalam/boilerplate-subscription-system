@@ -1,29 +1,37 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { SubscriptionsService } from './subscriptions.service';
+import { SubscriptionGateway } from './subscription.gateway';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionProcessor } from './processors/subscription.processor';
 
 import { StripeModule } from '../stripe/stripe.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { Subscription } from './entities/subscription';
+import { QUEUES } from './constants';
 
 @Module({
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([Subscription]),
     StripeModule,
-    BullModule.registerQueue({
-      name: 'subscription_q',
-      connection: {
-        host: 'localhost',
-        port: 6379,
+    BullModule.registerQueueAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return {
+          name: QUEUES.sub_placed,
+          connection: {
+            host: configService.get<string>('REDIS_HOST'),
+            port: configService.get<number>('REDIS_PORT'),
+          },
+        };
       },
     }),
   ],
-  providers: [SubscriptionsService, SubscriptionProcessor],
+  providers: [SubscriptionsService, SubscriptionGateway, SubscriptionProcessor],
   controllers: [SubscriptionsController],
 })
 export class SubscriptionsModule {}
