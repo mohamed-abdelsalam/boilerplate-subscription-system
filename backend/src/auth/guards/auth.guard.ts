@@ -1,6 +1,10 @@
+import { Request } from 'express';
+
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
+
 import { IS_PUBLIC_KEY } from '../decorators/auth';
 import { verifyJwtToken } from './guard.util';
 
@@ -8,6 +12,7 @@ import { verifyJwtToken } from './guard.util';
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
+    private configService: ConfigService,
     private reflector: Reflector,
   ) {}
 
@@ -19,11 +24,12 @@ export class AuthGuard implements CanActivate {
     if (isPublic) {
       return true;
     }
-    const request = context.switchToHttp().getRequest();
+    const request: Request = context.switchToHttp().getRequest();
 
     request['user'] = await verifyJwtToken(
       this.jwtService,
-      request.headers['authorization'],
+      this.configService,
+      request.cookies['auth_token'],
     );
     return true;
   }

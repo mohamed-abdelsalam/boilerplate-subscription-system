@@ -3,14 +3,15 @@ import * as bcrypt from 'bcrypt';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+import { UsersService } from '@users/users.service';
+import { User } from '@users/entities/user';
 import { SignInDto } from './dto/sign-in-dto';
 import { SignUpDto } from './dto/sign-up-dto';
-import { SignInResponseDto } from './dto/sign-in-response-dto';
+import { AuthResponse } from './dto/auth-response';
 import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
 import { EmailNotFoundException } from './exceptions/email-not-found-exception';
-import { SignUpResponseDto } from './dto/sign-up-response-dto';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/entities/user';
+
+const saltOrRounds: number = 10;
 
 @Injectable()
 export class AuthService {
@@ -19,27 +20,23 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  public async signIn(signInDto: SignInDto): Promise<SignInResponseDto> {
+  public async signIn(signInDto: SignInDto): Promise<AuthResponse> {
     const user: User = await this.usersService.findByEmail(signInDto.email);
     if (user === undefined) {
       throw new EmailNotFoundException();
     }
-    const isPasswordCorrect: boolean = await this.comparePassword(
+    const isPasswordCorrect: boolean = await bcrypt.compare(
       signInDto.password,
       user.password,
     );
     if (!isPasswordCorrect) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Wrong password!');
     }
 
-    const accessToken = await this.generateAccessToken(user);
-
-    return {
-      access_token: accessToken,
-    };
+    return await this.generateAuthResponse(user);
   }
 
-  public async signUp(signUpDto: SignUpDto): Promise<SignUpResponseDto> {
+  public async signUp(signUpDto: SignUpDto): Promise<AuthResponse> {
     let user: User = await this.usersService.findByEmail(signUpDto.email);
     if (user) {
       throw new DuplicateEmailException();
@@ -48,29 +45,21 @@ export class AuthService {
       email: signUpDto.email,
       firstName: signUpDto.firstName,
       lastName: signUpDto.lastName,
-      password: await this.hashPassword(signUpDto.password),
+      password: await bcrypt.hash(signUpDto.password, saltOrRounds),
     });
 
-    const accessToken = await this.generateAccessToken(user);
-
-    return {
-      access_token: accessToken,
-    };
+    return await this.generateAuthResponse(user);
   }
 
-  private async hashPassword(plainTextPassword: string): Promise<string> {
-    return bcrypt.hash(plainTextPassword, 10);
-  }
-
-  private async comparePassword(
-    plainTextPassword: string,
-    hashedPassword: string,
-  ): Promise<boolean> {
-    return bcrypt.compare(plainTextPassword, hashedPassword);
-  }
-
-  private async generateAccessToken(user: User): Promise<string> {
+  private async generateAuthResponse(user: User): Promise<AuthResponse> {
     const payload = { sub: user.id, email: user.email };
-    return this.jwtService.signAsync(payload);
+    return {
+      authToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '1d',
+      }),
+      refreshToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '10d',
+      }),
+    };
   }
 }

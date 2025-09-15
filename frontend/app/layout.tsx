@@ -1,4 +1,9 @@
-import React from 'react';
+import './globals.css';
+
+export const metadata = {
+  title: 'BSS System',
+  description: 'Boilerplate Subscription System',
+}
 
 export default function RootLayout({
   children,
@@ -6,7 +11,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en-DE">
+    <html>
       <body>{children}</body>
     </html>
   )

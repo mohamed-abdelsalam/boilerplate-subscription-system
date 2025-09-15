@@ -13,6 +13,7 @@ import { SignInDto } from './dto/sign-in-dto';
 import { SignUpDto } from './dto/sign-up-dto';
 import { EmailNotFoundException } from './exceptions/email-not-found-exception';
 import { DuplicateEmailException } from './exceptions/duplicate-email-exception';
+import { AuthResponse } from './dto/auth-response';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -25,9 +26,6 @@ describe('AuthService', () => {
         JwtModule.register({
           global: true,
           secret: 'secret',
-          signOptions: {
-            expiresIn: '60m',
-          },
         }),
       ],
       providers: [
@@ -72,13 +70,14 @@ describe('AuthService', () => {
         password: 'password',
       };
 
-      const response = await authService.signIn(signInDto);
+      const response: AuthResponse = await authService.signIn(signInDto);
 
       expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
-      expect(jwtSpy).toHaveBeenCalledTimes(1);
-      expect(response).toBeDefined();
+      expect(jwtSpy).toHaveBeenCalledTimes(2);
 
-      expect(response['access_token']).toBeDefined();
+      expect(response).toBeDefined();
+      expect(response.authToken).toBeDefined();
+      expect(response.refreshToken).toBeDefined();
     });
 
     it('should throw exception when sign in with wrong password', async () => {
@@ -151,13 +150,14 @@ describe('AuthService', () => {
           ...signUpDto,
           id: '123',
         }));
-      const signUpResponse = await authService.signUp(signUpDto);
+      const response: AuthResponse = await authService.signUp(signUpDto);
 
       expect(usersServiceCreateUserSpy).toHaveBeenCalledTimes(1);
       expect(usersServiceFindByEmailSpy).toHaveBeenCalledTimes(1);
 
-      expect(signUpResponse).toBeDefined();
-      expect(signUpResponse['access_token']).toBeDefined();
+      expect(response).toBeDefined();
+      expect(response.authToken).toBeDefined();
+      expect(response.refreshToken).toBeDefined();
       const user: User = await usersService.findByEmail(signUpDto.email);
       expect(user).toBeDefined();
       const passwordWasHashed: boolean = await bcrypt.compare(

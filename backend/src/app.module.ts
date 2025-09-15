@@ -13,6 +13,7 @@ import { Subscription } from '@subscriptions/entities/subscription';
 import { StripeModule } from '@stripe/stripe.module';
 import { PlansModule } from '@plans/plans.module';
 import { Plan } from '@plans/entities/plan';
+import { PlanPrice } from '@plans/entities/plan-price';
 
 @Module({
   imports: [
@@ -28,21 +29,20 @@ import { Plan } from '@plans/entities/plan';
           username: configService.get<string>('DB_USER'),
           password: configService.get<string>('DB_PASSWORD'),
           type: 'postgres',
-          entities: [User, Plan, Subscription],
+          entities: [User, Plan, Subscription, PlanPrice],
+          synchronize: true,
         };
       },
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        return {
-          connection: {
-            host: configService.get<string>('REDIS_HOST'),
-            port: configService.get<number>('REDIS_PORT'),
-          },
-        };
-      },
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+        },
+      }),
     }),
     UsersModule,
     AuthModule,

@@ -21,7 +21,8 @@ import { QUEUES } from './constants';
 @UseGuards(WsJwtGuard)
 export class SubscriptionGateway {
   constructor(
-    @InjectQueue(QUEUES.sub_placed) private subscriptionPlacesQueue: Queue,
+    @InjectQueue(QUEUES.sub_placed)
+    private readonly subscriptionPlacesQueue: Queue,
   ) {}
 
   @WebSocketServer()

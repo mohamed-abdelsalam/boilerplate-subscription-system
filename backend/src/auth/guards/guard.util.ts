@@ -1,15 +1,16 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { jwtConstants } from '@auth/constants';
+import { ConfigService } from '@nestjs/config';
 
 export async function verifyJwtToken(
   jwtService: JwtService,
-  authHeader: string,
+  configService: ConfigService,
+  authToken: string,
 ) {
   try {
-    const token = authHeader.replace('Bearer ', '');
-
-    return await jwtService.verifyAsync(token, { secret: jwtConstants.secret });
+    return await jwtService.verifyAsync(authToken, {
+      secret: configService.get<string>('JWT_SECRETS'),
+    });
   } catch (error) {
     throw new UnauthorizedException(error);
   }

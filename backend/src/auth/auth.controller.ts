@@ -1,26 +1,91 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Response } from 'express';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Logger,
+  Post,
+  Res,
+  Get,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in-dto';
 import { SignUpDto } from './dto/sign-up-dto';
-import { SignUpResponseDto } from './dto/sign-up-response-dto';
-import { SignInResponseDto } from './dto/sign-in-response-dto';
 import { Public } from './decorators/auth';
+import { AuthResponse } from './dto/auth-response';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @HttpCode(HttpStatus.OK)
   @Post('sign-in')
-  public signIn(@Body() signInDto: SignInDto): Promise<SignInResponseDto> {
-    return this.authService.signIn(signInDto);
+  public async signIn(@Body() signInDto: SignInDto, @Res() response: Response) {
+    try {
+      const authResponse: AuthResponse =
+        await this.authService.signIn(signInDto);
+
+      this.setResponseAuthCookies(response, authResponse);
+
+      return response
+        .status(HttpStatus.OK)
+        .send({ message: 'Signin successful!' });
+    } catch (error) {
+      Logger.log(error);
+
+      return response
+        .status(HttpStatus.UNAUTHORIZED)
+        .send({ message: 'wrong email/password' });
+    }
   }
 
   @Public()
-  @HttpCode(HttpStatus.OK)
   @Post('sign-up')
-  public signUp(@Body() signUpDto: SignUpDto): Promise<SignUpResponseDto> {
-    return this.authService.signUp(signUpDto);
+  public async signUp(@Body() signUpDto: SignUpDto, @Res() response: Response) {
+    try {
+      const authResponse: AuthResponse =
+        await this.authService.signUp(signUpDto);
+
+      this.setResponseAuthCookies(response, authResponse);
+
+      return response
+        .status(HttpStatus.OK)
+        .send({ message: 'Signup successful!' });
+    } catch (error) {
+      Logger.error(error);
+
+      return response
+        .status(HttpStatus.CONFLICT)
+        .send({ message: 'not able to create account' });
+    }
+  }
+
+  @Get('sign-out')
+  public async signOut(@Res() response: Response) {
+    response.cookie('auth_token', null);
+    response.cookie('refresh_token', null);
+
+    return response
+      .status(HttpStatus.OK)
+      .send({ message: 'sign out successfully' });
+  }
+
+  private setResponseAuthCookies(
+    response: Response,
+    authResponse: AuthResponse,
+  ) {
+    response.cookie('auth_token', authResponse.authToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 24,
+    });
+
+    response.cookie('refresh_token', authResponse.authToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24 * 10,
+    });
   }
 }

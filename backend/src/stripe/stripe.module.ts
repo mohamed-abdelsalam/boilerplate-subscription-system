@@ -1,10 +1,11 @@
 import Stripe from 'stripe';
 
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StripeService } from './stripe.service';
 
 @Module({
+  imports: [ConfigModule],
   providers: [
     {
       provide: Stripe,

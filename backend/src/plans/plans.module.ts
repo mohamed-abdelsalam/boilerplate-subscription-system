@@ -10,5 +10,6 @@ import { PlansController } from './plans.controller';
   imports: [StripeModule, TypeOrmModule.forFeature([Plan])],
   providers: [PlansService],
   controllers: [PlansController],
+  exports: [PlansService],
 })
 export class PlansModule {}
