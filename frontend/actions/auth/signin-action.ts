@@ -1,4 +1,4 @@
-import { END_POINTS } from '../endpoints';
+import { END_POINTS } from '@actions/endpoints';
 
 class SignInPayload {
   email: string;

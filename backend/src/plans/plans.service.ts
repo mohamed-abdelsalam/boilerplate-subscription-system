@@ -20,12 +20,12 @@ export class PlansService {
     planDto: CreatePlanDto,
     createdBy: string,
   ): Promise<Plan> {
-    const productId: string = await this.stripeService.createProduct(
-      planDto.name,
-    );
+    const product = await this.stripeService.createProduct({
+      name: planDto.name,
+    });
     const newPlan: Plan = this.plansRepository.create({
       name: planDto.name,
-      providerId: productId,
+      providerId: product.id,
       createdBy: createdBy,
     });
 
@@ -56,27 +56,30 @@ export class PlansService {
     pricesDto: PriceDto[],
   ): Promise<PlanPrice[]> {
     return Promise.all(
-      pricesDto.map(
-        async (price: PriceDto) =>
-          new PlanPrice({
-            plan: plan,
-            currency: price.currency,
-            nickname: price.nickname,
-            unitAmount: price.unitAmount,
+      pricesDto.map(async (price: PriceDto) => {
+        const stripePrice = await this.stripeService.createPrice({
+          currency: price.currency,
+          unit_amount: price.unitAmount,
+          product: plan.providerId,
+          nickname: price.nickname,
+          recurring: {
             interval: price.recurring.interval,
-            intervalCount: price.recurring.intervalCount,
-            providerId: await this.stripeService.createPrice({
-              currency: price.currency,
-              unit_amount: price.unitAmount,
-              product: plan.providerId,
-              nickname: price.nickname,
-              recurring: {
-                interval: price.recurring.interval,
-                interval_count: price.recurring.intervalCount,
-              },
-            }),
-          }),
-      ),
+            interval_count: price.recurring.intervalCount,
+          },
+        });
+
+        const planPrice = new PlanPrice({
+          plan: plan,
+          currency: price.currency,
+          nickname: price.nickname,
+          unitAmount: price.unitAmount,
+          interval: price.recurring.interval,
+          intervalCount: price.recurring.intervalCount,
+          providerId: stripePrice.id,
+        });
+
+        return planPrice;
+      }),
     );
   }
 }

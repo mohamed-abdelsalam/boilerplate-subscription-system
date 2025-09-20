@@ -2,23 +2,33 @@
 
 import React, { useState } from 'react';
 import { CreatePlanAction } from '@actions/plans/create-plan-action';
+import { useRouter } from 'next/navigation';
 
 export default function NewPlanPage() {
 
-  const [planName, setPlanName] = useState<string>('');
+  const [name, setName] = useState<string>('');
   const [currency, setCurrency] = useState<string>('');
+  const [nickname, setNickname] = useState<string>();
   const [unitAmount, setUnitAmount] = useState<number>(0);
+  const router = useRouter()
   
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     await CreatePlanAction({
-      planName,
+      name,
       prices: [{
         currency,
         unitAmount,
+        nickname,
+        recurring: {
+          interval: 'day',
+          intervalCount: 12,
+        }
       }],
     });
+
+    router.replace('/plans');
   }
 
   return (
@@ -30,8 +40,16 @@ export default function NewPlanPage() {
           placeholder='Plan Name'
           required
           className='w-full border p-2 rounded'
-          value={planName}
-          onChange={(event) => setPlanName(event.target.value)}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <input
+          type='text'
+          placeholder='Price Nickname'
+          required
+          className='w-full border p-2 rounded'
+          value={nickname}
+          onChange={(event) => setNickname(event.target.value)}
         />
         <input
           type='number'

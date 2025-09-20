@@ -1,13 +1,22 @@
-import { END_POINTS } from '../endpoints';
+import { END_POINTS } from '@actions/endpoints';
 
 type CreatePlanPayload = {
-  planName: string;
+  name: string;
   prices: Price[];
+}
+
+type Interval = 'day' | 'month' | 'week' | 'year';
+
+type Recurring = {
+  interval: Interval;
+  intervalCount: number;
 }
 
 type Price = {
   unitAmount: number;
   currency: string;
+  recurring: Recurring;
+  nickname: string;
 }
 
 export async function CreatePlanAction(createPlanPayload: CreatePlanPayload): Promise<Response> {

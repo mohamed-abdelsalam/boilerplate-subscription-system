@@ -1,4 +1,4 @@
-import { END_POINTS } from './endpoints';
+import { END_POINTS } from '@actions/endpoints';
 
 export async function GetUserSubscriptionAction() {
   const response = await fetch(END_POINTS.USER_SUPSCRIPTIONS_PAGE, {
@@ -7,6 +7,7 @@ export async function GetUserSubscriptionAction() {
   });
 
   if (response.ok) {
+    console.log((await response.json()));
     return await response.json();
   } else {
     return null;

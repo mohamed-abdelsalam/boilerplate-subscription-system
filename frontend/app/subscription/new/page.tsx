@@ -13,8 +13,6 @@ import {
 
 export default function NewSubscriptionPage() {
   const [data, setData] = useState<SubscriptionCheckout | null>(null);
-  const stripe = loadStripe(data.publicKey);
-  const options = { clientSecret: data.clientSecret };
 
   const triggerEvent = () => {
     const socket = GetPlaceSubscriptionSocket();
@@ -51,6 +49,8 @@ export default function NewSubscriptionPage() {
 
   let element = null;
   if (data) {
+    const stripe = loadStripe(data.publicKey);
+    const options = { clientSecret: data.clientSecret };
     element = (
       <Elements stripe={stripe} options={options}>
         <PaymentElement />

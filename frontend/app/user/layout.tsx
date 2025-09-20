@@ -47,7 +47,7 @@ export default function UserLayout({
       <aside className='w-64 bg-white shadow-md p-6 space-y-6'>
         <h2 className='text-xl font-semibold text-gray-800'>My Account</h2>
         <nav className='flex flex-col space-y-2'>
-          <Link href='/user/subscriptions' className='px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition'>Subscriptions</Link>
+          <Link href='/subscription' className='px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition'>Subscriptions</Link>
           <Link href='/user/settings' className='px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition'>Settings</Link>
           <Link href='/auth/signout' className='px-3 py-2 rounded-lg text-red-700 hover:bg-blue-50 hover:text-red-600 transition'>Sign out</Link>
         </nav>

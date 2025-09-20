@@ -20,7 +20,7 @@ export class SubscriptionsController {
     try {
       const userId = req['user']['sub'];
       const subscriptions =
-        this.subscriptionsService.getAllSubscriptionsByUserId(userId);
+        await this.subscriptionsService.getAllSubscriptionsByUserId(userId);
       return res.status(HttpStatus.OK).send(subscriptions);
     } catch (error) {
       Logger.error('Failed to get list of subscriptions');
