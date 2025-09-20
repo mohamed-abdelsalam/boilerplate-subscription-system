@@ -61,7 +61,6 @@ export class PlansService {
           currency: price.currency,
           unit_amount: price.unitAmount,
           product: plan.providerId,
-          nickname: price.nickname,
           recurring: {
             interval: price.recurring.interval,
             interval_count: price.recurring.intervalCount,
@@ -71,7 +70,6 @@ export class PlansService {
         const planPrice = new PlanPrice({
           plan: plan,
           currency: price.currency,
-          nickname: price.nickname,
           unitAmount: price.unitAmount,
           interval: price.recurring.interval,
           intervalCount: price.recurring.intervalCount,

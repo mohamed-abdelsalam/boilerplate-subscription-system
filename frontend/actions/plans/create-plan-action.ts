@@ -12,11 +12,10 @@ type Recurring = {
   intervalCount: number;
 }
 
-type Price = {
+export type Price = {
   unitAmount: number;
   currency: string;
   recurring: Recurring;
-  nickname: string;
 }
 
 export async function CreatePlanAction(createPlanPayload: CreatePlanPayload): Promise<Response> {

@@ -45,7 +45,4 @@ export class PriceDto {
     type: RecurringDto,
   })
   recurring: RecurringDto;
-
-  @ApiProperty({ example: 'Basic Daily Price' })
-  nickname: string;
 }

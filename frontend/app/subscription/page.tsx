@@ -17,7 +17,7 @@ export default function UserSubscriptionsPage() {
     <div className='max-w-3xl mx-auto space-y-8'>
       {subscriptions.map((subscription) => (
         <section className='bg-white shadow rounded-2xl p-6 space-y-4'>
-          <h2 className='text-xl font-semibold text-gray-800'>{subscription.subscriptionType}</h2>
+          <h2 className='text-xl font-semibold text-gray-800'>{subscription.id}</h2>
       </section>
       ))}
     </div>

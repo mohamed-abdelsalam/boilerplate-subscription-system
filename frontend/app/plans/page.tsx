@@ -30,7 +30,12 @@ export default function PlansPage() {
               return (
                 <section key={price.id} className='bg-white shadow rounded-xl p-6 space-y-4'>
                   <p className='text-gray-800 font-medium'>{price.unitAmount} {price.currency}</p>
-                  <button className='w-full bg-green-600 text-white py-2 rounded hover:bg-green-700' onClick={() => {router.push('/subscription/new');}}>Subscripe Now!</button>
+                  <button 
+                    className='w-full bg-green-600 text-white py-2 rounded hover:bg-green-700' 
+                    onClick={() => {router.push(`/subscription/new?planId=${p.id}&priceId=${price.id}`);}}
+                  >
+                    Subscripe Now!
+                  </button>
               </section>)
             })}
           </div>

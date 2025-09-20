@@ -15,9 +15,6 @@ export class PlanPrice {
   @Column()
   unitAmount: number;
 
-  @Column()
-  nickname: string;
-
   @Column({ type: 'enum', enum: ['day', 'month', 'week', 'year'] })
   interval: string;
 

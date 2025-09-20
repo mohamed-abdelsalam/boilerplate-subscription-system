@@ -10,17 +10,20 @@ import {
   GetPlaceSubscriptionSocket,
   SubscriptionCheckout
 } from '@actions/subscriptions/get-place-subscription-socket';
+import { useSearchParams } from 'next/navigation';
 
 export default function NewSubscriptionPage() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<SubscriptionCheckout | null>(null);
 
-  const triggerEvent = () => {
+  const triggerSubscription = (event) => {
+    event.preventDefault();
     const socket = GetPlaceSubscriptionSocket();
 
     socket.emit('create-subscription', {
-      planId: '',
-      priceId: '',
-      // type: 'subscription' | onceoff
+      planId: searchParams.get('planId'),
+      priceId: searchParams.get('priceId'),
+      type: 'subscription',
     });
 
     console.log('event emitted');
@@ -34,6 +37,7 @@ export default function NewSubscriptionPage() {
 
     socket.on('subscription-ready', async (data: SubscriptionCheckout) => {
       setData(data);
+      console.log(data);
     });
 
     socket.on('exception', function(data) {
@@ -59,12 +63,9 @@ export default function NewSubscriptionPage() {
   }
 
   return (
-    <div>
+    <div className='flex items-center rounded-xl border-emerald-500'>
       {element}
-      <button onClick={(event) => {
-        event.preventDefault();
-        triggerEvent();
-      }}>Click Me!</button>
+      <button onClick={triggerSubscription}>Click Me!</button>
     </div>
   );
 }

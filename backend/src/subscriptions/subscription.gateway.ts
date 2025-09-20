@@ -48,6 +48,7 @@ export class SubscriptionGateway {
     const job = new SubscriptionPaymentJob({
       userId: (client as any)?.user?.['sub'],
       email: (client as any)?.user?.['email'],
+      type: body.type,
       planId: body.planId,
       priceId: body.priceId,
       wsClientId: client.id,
