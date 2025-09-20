@@ -15,7 +15,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        global: true,
         secret: configService.get<string>('JWT_SECRETS'),
       }),
     }),
@@ -28,5 +27,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     },
   ],
   controllers: [AuthController],
+  exports: [JwtModule],
 })
 export class AuthModule {}

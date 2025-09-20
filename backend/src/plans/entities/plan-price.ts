@@ -15,6 +15,19 @@ export class PlanPrice {
   @Column()
   unitAmount: number;
 
+  @Column()
+  nickname: string;
+
+  @Column({ type: 'enum', enum: ['day', 'month', 'week', 'year'] })
+  interval: string;
+
+  @Column()
+  intervalCount: number;
+
   @ManyToOne(() => Plan, (plan) => plan.prices)
   plan: Plan;
+
+  constructor(init?: Partial<PlanPrice>) {
+    Object.assign(this, init);
+  }
 }

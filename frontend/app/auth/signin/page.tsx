@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { SignInAction } from '@actions/signin-action';
+import { SignInAction } from '@actions/auth/signin-action';
 
 export default function SignInPage() {
   const [email, setEmail] = useState<string>('');

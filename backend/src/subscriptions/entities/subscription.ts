@@ -9,16 +9,11 @@ export class Subscription {
   userId: string;
 
   @Column()
-  providerSubscriptionId: string;
+  providerId: string;
 
   @Column()
-  subscriptionType: string;
+  priceId: string;
 
-  @Column()
-  status: SubscriptionStatus;
-
-  @Column()
-  createdAt: number;
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 }
-
-type SubscriptionStatus = 'active' | 'cancelled' | 'unpaid';

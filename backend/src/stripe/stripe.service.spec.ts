@@ -1,10 +1,8 @@
 import Stripe from 'stripe';
 
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StripeService } from './stripe.service';
-import { CreateStripeCustomerDto } from './dto/create-stripe-customer.dto';
-import { CreateStripePriceDto } from './dto/create-stripe-price.dto';
-import { CreateStripeSubscripttionDto } from './dto/create-stripe-subscription.dto';
 
 describe('StripeService', () => {
   let stripeService: StripeService;
@@ -12,6 +10,7 @@ describe('StripeService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule],
       providers: [
         StripeService,
         {
@@ -25,6 +24,11 @@ describe('StripeService', () => {
             },
             subscriptions: {
               create: jest.fn().mockReturnValue({ id: '123' }),
+            },
+            invoices: {
+              retrieve: jest.fn().mockReturnValue({
+                confirmation_secret: { client_secret: '123' },
+              }),
             },
           },
         },
@@ -41,7 +45,7 @@ describe('StripeService', () => {
 
   describe('createCustomer', () => {
     it('happy path', async () => {
-      const createStripeCustomerDto: CreateStripeCustomerDto = {
+      const createStripeCustomerDto: Stripe.CustomerCreateParams = {
         name: 'Mohamed',
         email: 'eng.mohamed.csd2014@gmail.com',
         metadata: {
@@ -50,19 +54,19 @@ describe('StripeService', () => {
       };
 
       const stripeClientSpy = jest.spyOn(stripeClient.customers, 'create');
-      const customerId: string = await stripeService.createCustomer(
+      const { id } = await stripeService.createCustomer(
         createStripeCustomerDto,
       );
 
       expect(stripeClientSpy).toHaveBeenCalledWith(createStripeCustomerDto);
       expect(stripeClientSpy).toHaveBeenCalledTimes(1);
-      expect(customerId).toBe('123');
+      expect(id).toBe('123');
     });
   });
 
   describe('createPrice', () => {
     it('happy path', async () => {
-      const createStripePriceDto: CreateStripePriceDto = {
+      const createStripePriceDto: Stripe.PriceCreateParams = {
         currency: 'EUR',
         unit_amount: 1000,
         recurring: {
@@ -72,18 +76,17 @@ describe('StripeService', () => {
         product: 'product_id',
       };
       const stripeClientSpy = jest.spyOn(stripeClient.prices, 'create');
-      const productId: string =
-        await stripeService.createPrice(createStripePriceDto);
+      const { id } = await stripeService.createPrice(createStripePriceDto);
 
       expect(stripeClientSpy).toHaveBeenCalledWith(createStripePriceDto);
       expect(stripeClientSpy).toHaveBeenCalledTimes(1);
-      expect(productId).toBe('123');
+      expect(id).toBe('123');
     });
   });
 
   describe('createSubscription', () => {
     it('happy path', async () => {
-      const createStripeSubscriptionDto: CreateStripeSubscripttionDto = {
+      const createStripeSubscriptionDto: Stripe.SubscriptionCreateParams = {
         customer: 'test-customer',
         currency: 'EUR',
         items: [
@@ -95,12 +98,13 @@ describe('StripeService', () => {
       };
 
       const stripeClientSpy = jest.spyOn(stripeClient.subscriptions, 'create');
-      const subscriptionId: string = await stripeService.createSubscription(
+      const { providerId, type } = await stripeService.initSubscription(
         createStripeSubscriptionDto,
       );
       expect(stripeClientSpy).toHaveBeenCalledWith(createStripeSubscriptionDto);
       expect(stripeClientSpy).toHaveBeenCalledTimes(1);
-      expect(subscriptionId).toBe('123');
+      expect(providerId).toBe('123');
+      expect(type).toBe('subscription');
     });
   });
 });

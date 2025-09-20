@@ -13,13 +13,17 @@ import { SignInDto } from './dto/sign-in-dto';
 import { SignUpDto } from './dto/sign-up-dto';
 import { Public } from './decorators/auth';
 import { AuthResponse } from './dto/auth-response';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
   @Post('sign-in')
+  @ApiResponse({ status: 200, description: 'Signin successful' })
+  @ApiResponse({ status: 401, description: 'wrong email/password' })
   public async signIn(@Body() signInDto: SignInDto, @Res() response: Response) {
     try {
       const authResponse: AuthResponse =
@@ -29,7 +33,7 @@ export class AuthController {
 
       return response
         .status(HttpStatus.OK)
-        .send({ message: 'Signin successful!' });
+        .send({ message: 'Signin successful' });
     } catch (error) {
       Logger.log(error);
 
@@ -41,6 +45,8 @@ export class AuthController {
 
   @Public()
   @Post('sign-up')
+  @ApiResponse({ status: 200, description: 'Signup successful' })
+  @ApiResponse({ status: 409, description: 'not able to create account' })
   public async signUp(@Body() signUpDto: SignUpDto, @Res() response: Response) {
     try {
       const authResponse: AuthResponse =
@@ -50,7 +56,7 @@ export class AuthController {
 
       return response
         .status(HttpStatus.OK)
-        .send({ message: 'Signup successful!' });
+        .send({ message: 'Signup successful' });
     } catch (error) {
       Logger.error(error);
 
@@ -61,6 +67,7 @@ export class AuthController {
   }
 
   @Get('sign-out')
+  @ApiResponse({ status: 200, description: 'Sign out successfully' })
   public async signOut(@Res() response: Response) {
     response.cookie('auth_token', null);
     response.cookie('refresh_token', null);

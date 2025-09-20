@@ -9,47 +9,54 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { WsJwtGuard } from '@auth/guards/ws-jwt.guard';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QUEUES } from './constants';
+
+import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { QUEUES } from './queues/constants';
+import { SubscriptionPaymentJob } from './queues/subscription-payment-job';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { PaymentProcessorResponse } from './dto/payment-processor-response';
+
+enum MessageTypes {
+  CreateSubscription = 'create-subscription',
+  SubscriptionReady = 'subscription-ready',
+}
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: 'http://localhost:3000',
+    credentials: true,
   },
+  transports: ['websocket'],
+  namespace: 'subscriptions',
 })
 @UseGuards(WsJwtGuard)
 export class SubscriptionGateway {
   constructor(
-    @InjectQueue(QUEUES.sub_placed)
-    private readonly subscriptionPlacesQueue: Queue,
+    @InjectQueue(QUEUES.subscription)
+    private readonly subscriptionQueue: Queue<SubscriptionPaymentJob>,
   ) {}
 
   @WebSocketServer()
   private server: Server;
 
-  @SubscribeMessage('placeSubscription')
-  public async handleTask(
+  @SubscribeMessage(MessageTypes.CreateSubscription)
+  public async handleSubscription(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: any,
+    @MessageBody() body: CreateSubscriptionDto,
   ) {
-    const user = (client as any).user;
-    const email: string = user['email'];
-    const userId: string = user['sub'];
-    const subscriptionType: string = data['subscriptionType'];
+    const job = new SubscriptionPaymentJob({
+      userId: (client as any)?.user?.['sub'],
+      email: (client as any)?.user?.['email'],
+      planId: body.planId,
+      priceId: body.priceId,
+      wsClientId: client.id,
+    });
 
-    return await this.subscriptionPlacesQueue.add(
-      `placeSubscription:${userId}`,
-      {
-        email,
-        userId,
-        subscriptionType,
-        clientId: client.id,
-      },
-    );
+    await this.subscriptionQueue.add(job.generateJobId(), job);
   }
 
-  public sendResult(data: any) {
-    this.server.to(data.clientId).emit('taskResults', data);
+  public sendResponse(wsClientId: string, data: PaymentProcessorResponse) {
+    this.server.to(wsClientId).emit(MessageTypes.SubscriptionReady, data);
   }
 }

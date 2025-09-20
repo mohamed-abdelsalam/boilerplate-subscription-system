@@ -14,10 +14,14 @@ import { StripeModule } from '@stripe/stripe.module';
 import { PlansModule } from '@plans/plans.module';
 import { Plan } from '@plans/entities/plan';
 import { PlanPrice } from '@plans/entities/plan-price';
+import { StripeWebhookController } from './stripe-webhook/stripe-webhook.controller';
+import { StripeWebhookModule } from './stripe-webhook/stripe-webhook.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -49,8 +53,9 @@ import { PlanPrice } from '@plans/entities/plan-price';
     SubscriptionsModule,
     StripeModule,
     PlansModule,
+    StripeWebhookModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, StripeWebhookController],
   providers: [AppService],
 })
 export class AppModule {}

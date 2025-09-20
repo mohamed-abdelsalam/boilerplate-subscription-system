@@ -1,7 +1,14 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class CreateSubscriptionDto {
-  userId: string;
-  email: string;
-  subscriptionType: SubscriptionType;
+  @ApiProperty({ example: '12345-12o33n-1939dk' })
+  planId: string;
+
+  @ApiProperty({ example: '12345-12o33n-1939dk' })
+  priceId: string;
+
+  @ApiProperty({ example: 'subscription', enum: ['subscription', 'onceoff'] })
+  type: SubscriptionType;
 }
 
-type SubscriptionType = 'Basic' | 'Premium';
+export type SubscriptionType = 'subscription' | 'onceoff';

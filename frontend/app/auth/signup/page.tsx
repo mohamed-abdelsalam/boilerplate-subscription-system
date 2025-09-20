@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { SignUpAction } from '@actions/signup-action';
+import { SignUpAction } from '@actions/auth/signup-action';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState<string>('');

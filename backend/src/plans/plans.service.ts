@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { StripeService } from '@stripe/stripe.service';
-import { CreatePlanDto, Price } from './dto/create-plan.dto';
+import { CreatePlanDto, PriceDto } from './dto/create-plan.dto';
 import { Plan } from './entities/plan';
 import { PlanPrice } from './entities/plan-price';
 
@@ -13,46 +13,70 @@ export class PlansService {
   constructor(
     private stripeService: StripeService,
     @InjectRepository(Plan) private plansRepository: Repository<Plan>,
+    @InjectRepository(PlanPrice) private priceRepository: Repository<PlanPrice>,
   ) {}
 
-  public async createPlan(createPlanDto: CreatePlanDto): Promise<Plan> {
+  public async create(
+    planDto: CreatePlanDto,
+    createdBy: string,
+  ): Promise<Plan> {
     const productId: string = await this.stripeService.createProduct(
-      createPlanDto.planName,
+      planDto.name,
     );
     const newPlan: Plan = this.plansRepository.create({
-      name: createPlanDto.planName,
+      name: planDto.name,
       providerId: productId,
-      createdBy: createPlanDto.createdBy,
+      createdBy: createdBy,
     });
-    newPlan.prices = await Promise.all(
-      createPlanDto.prices.map(async (price: Price) => {
-        const priceProviderId: string = await this.stripeService.createPrice({
-          currency: price.currency,
-          unit_amount: price.unitAmount,
-          product: productId,
-          recurring: {
-            interval: 'month',
-            interval_count: 12,
-          },
-        });
-        const planPrice: PlanPrice = new PlanPrice();
-        planPrice.plan = newPlan;
-        planPrice.currency = price.currency;
-        planPrice.unitAmount = price.unitAmount;
-        planPrice.providerId = priceProviderId;
 
-        return planPrice;
-      }),
-    );
+    newPlan.prices = await this.attachPricesToPlan(newPlan, planDto.prices);
 
     return this.plansRepository.save(newPlan);
   }
 
-  public async getAllPlans(): Promise<Plan[]> {
-    return this.plansRepository.find();
+  public async getAll(): Promise<Plan[]> {
+    return this.plansRepository.find({
+      relations: ['prices'],
+    });
   }
 
-  public async getPlanByName(name: string): Promise<Plan> {
-    return this.plansRepository.findOneBy({ name });
+  public async getPlanById(id: string): Promise<Plan> {
+    return this.plansRepository.findOne({
+      where: { id },
+      relations: ['prices'],
+    });
+  }
+
+  public async getPrice(id: string): Promise<PlanPrice> {
+    return this.priceRepository.findOneBy({ id });
+  }
+
+  private async attachPricesToPlan(
+    plan: Plan,
+    pricesDto: PriceDto[],
+  ): Promise<PlanPrice[]> {
+    return Promise.all(
+      pricesDto.map(
+        async (price: PriceDto) =>
+          new PlanPrice({
+            plan: plan,
+            currency: price.currency,
+            nickname: price.nickname,
+            unitAmount: price.unitAmount,
+            interval: price.recurring.interval,
+            intervalCount: price.recurring.intervalCount,
+            providerId: await this.stripeService.createPrice({
+              currency: price.currency,
+              unit_amount: price.unitAmount,
+              product: plan.providerId,
+              nickname: price.nickname,
+              recurring: {
+                interval: price.recurring.interval,
+                interval_count: price.recurring.intervalCount,
+              },
+            }),
+          }),
+      ),
+    );
   }
 }

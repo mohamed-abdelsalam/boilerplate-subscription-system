@@ -1,7 +1,7 @@
 'use client';
 
+import { GetUserSubscriptionAction } from '@actions/subscriptions/get-user-subscriptions-action';
 import { useEffect, useState } from 'react';
-import { GetUserSubscriptionAction } from '@actions/get-user-subscriptions-action';
 
 export default function UserSubscriptionsPage() {
 

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SignOutAction } from '@actions/signout-action';
+import { SignOutAction } from '@actions/auth/signout-action';
 
 export default function SignOutPage() {
   const router = useRouter();

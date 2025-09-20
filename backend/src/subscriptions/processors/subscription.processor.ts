@@ -1,18 +1,20 @@
+import Stripe from 'stripe';
 import { Job } from 'bullmq';
 import { Repository } from 'typeorm';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
 
 import { StripeService } from '@stripe/stripe.service';
 import { UsersService } from '@users/users.service';
-import { Plan } from '@plans/entities/plan';
 import { PlansService } from '@plans/plans.service';
 import { Subscription } from '@subscriptions/entities/subscription';
-import { InjectRepository } from '@nestjs/typeorm';
-import { QUEUES } from '@subscriptions/constants';
+import { QUEUES } from '@subscriptions/queues/constants';
 import { SubscriptionGateway } from '@subscriptions/subscription.gateway';
+import { SubscriptionPaymentJob } from '@subscriptions/queues/subscription-payment-job';
+import { PlanPrice } from '@plans/entities/plan-price';
 
-@Processor(QUEUES.sub_placed)
+@Processor(QUEUES.subscription)
 export class SubscriptionProcessor extends WorkerHost {
   constructor(
     @InjectRepository(Subscription)
@@ -25,43 +27,73 @@ export class SubscriptionProcessor extends WorkerHost {
     super();
   }
 
-  public async process(job: Job): Promise<any> {
-    const userId: string = job.data['userId'];
-    const email: string = job.data['email'];
-    const subscriptionType: string = job.data['subscriptionType'];
-    const clientId: string = job.data['clientId'];
-
-    const stripeCustomerId: string = await this.stripeService.createCustomer({
-      email: email,
+  public async process(job: Job<SubscriptionPaymentJob>): Promise<void> {
+    const stripeCustomer = await this.stripeService.createCustomer({
+      email: job.data.email,
       metadata: {
-        userId: userId,
+        userId: job.data.userId,
       },
-      name: await this.usersService.getUserFullName(userId),
+      name: await this.usersService.getUserFullName(job.data.userId),
     });
 
-    const selectedPlan: Plan =
-      await this.plansService.getPlanByName(subscriptionType);
+    const selectedPrice = await this.plansService.getPrice(job.data.priceId);
 
-    const providerSubscriptionId: string =
-      await this.stripeService.createSubscription({
-        currency: selectedPlan.prices[0].currency,
-        customer: stripeCustomerId,
-        items: [
-          {
-            price: selectedPlan.prices[0].id,
-          },
-        ],
-        payment_behavior: 'default_incomplete',
-      });
-    let newSubscription: Subscription = this.subscriptionsRepository.create({
-      providerSubscriptionId,
-      userId,
-      subscriptionType,
+    switch (job.data.type) {
+      case 'subscription':
+        this.processSubscription(stripeCustomer, selectedPrice, job.data);
+        break;
+      case 'onceoff':
+        this.processOnceoff(stripeCustomer, selectedPrice, job.data);
+    }
+  }
+
+  private async processSubscription(
+    stripeCustomer: Stripe.Customer,
+    selectedPrice: PlanPrice,
+    jobData: SubscriptionPaymentJob,
+  ) {
+    const response = await this.stripeService.initSubscription({
+      customer: stripeCustomer.id,
+      items: [
+        {
+          price: selectedPrice.providerId,
+        },
+      ],
+      payment_behavior: 'default_incomplete',
     });
-    newSubscription = await this.subscriptionsRepository.save(newSubscription);
-    this.subscriptionGateWay.sendResult({
-      ...newSubscription,
-      clientId,
+
+    await this.subscriptionsRepository.save({
+      userId: jobData.userId,
+      providerId: response.providerId,
+      priceId: selectedPrice.id,
+    });
+
+    this.subscriptionGateWay.sendResponse(jobData.wsClientId, {
+      clientSecret: response.stripeClientSecret,
+      publicKey: response.stripePublicKey,
+    });
+  }
+
+  private async processOnceoff(
+    stripeCustomer: Stripe.Customer,
+    selectedPrice: PlanPrice,
+    jobData: SubscriptionPaymentJob,
+  ) {
+    const response = await this.stripeService.initPaymentIntent(
+      stripeCustomer.id,
+      selectedPrice.unitAmount,
+      selectedPrice.currency,
+    );
+
+    await this.subscriptionsRepository.save({
+      userId: jobData.userId,
+      providerId: response.providerId,
+      priceId: selectedPrice.id,
+    });
+
+    this.subscriptionGateWay.sendResponse(jobData.wsClientId, {
+      clientSecret: response.stripeClientSecret,
+      publicKey: response.stripePublicKey,
     });
   }
 }
